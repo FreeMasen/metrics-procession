@@ -1,0 +1,23 @@
+[package]
+name = "metrics-procession"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/FreeMasen/metrics-procession"
+description = "A compact in-memory collector for metrics.rs"
+authors = ["Robert Masen"]
+categories = ["debugging"]
+
+[dependencies]
+metrics = "0.24"
+serde = { version = "1.0.219", features = ["derive"] }
+time = { version = "0.3.41", features = ["serde-human-readable"] }
+
+[dev-dependencies]
+clap = { version = "4.5.41", features = ["derive"] }
+indicatif = { version = "0.18.0", features = ["rayon"] }
+insta = { version = "1.43.1", features = ["json", "redactions"] }
+metrics-util = "0.20.0"
+rand = "0.9.1"
+rayon = "1.1.0"
+serde_json = {version = "1" }
