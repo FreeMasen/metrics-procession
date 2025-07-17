@@ -76,9 +76,9 @@ impl Serialize for LabelsSet<'_> {
 }
 
 /// An iterator that will clone values out of the source [`Procession`]
-/// 
+///
 /// warning: this will re-allocate all of the [`String`]s from the [`metrics::Key`]
-/// type potentially many times. 
+/// type potentially many times.
 pub struct MetricsIterator<'a>(MetricsRefIterator<'a>);
 
 impl<'a> From<MetricsRefIterator<'a>> for MetricsIterator<'a> {
@@ -158,7 +158,7 @@ impl<'a> MetricsRefIterator<'a> {
     /// above. The returned [`Event`] represents the correct value that should come
     /// next in the series but since it only contains the millisecond count since its owning
     /// [`Chunk`]'s `reference_time` we will also return the correct [`Chunk`]
-    /// 
+    ///
     /// This method will also handle the index management for the calculation of the next event
     /// we should emit. If the current chunk is exhausted, it will reset the `event_index` and
     /// increment the `chunk_index`, otherwise it will increment the `event_index` only
@@ -284,6 +284,9 @@ mod tests {
                 }
             })
             .collect();
-        Procession { labels, chunks: streams }
+        Procession {
+            labels,
+            chunks: streams,
+        }
     }
 }
