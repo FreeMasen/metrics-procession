@@ -1,7 +1,7 @@
 // this module uses a hashmap with the `Key` type which shouldn't really
 // change during its lifetime
 #![allow(clippy::mutable_key_type)]
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use metrics::Key;
 use serde::{Deserialize, Serialize, de::Visitor, ser::SerializeSeq};
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize, de::Visitor, ser::SerializeSeq};
 /// A set of labels mapping from the original [`metrics::Key`] to a unique identifier
 /// and will be used to lookup what identifier to use when recording metrics events
 #[derive(Debug, PartialEq, Clone, Default)]
-pub struct LabelSet(pub HashMap<Key, u16>);
+pub struct LabelSet(pub BTreeMap<Key, u16>);
 
 impl LabelSet {
     /// Get the identifier for the provided key
@@ -96,7 +96,7 @@ impl<'de> Deserialize<'de> for LabelSet {
             where
                 A: serde::de::SeqAccess<'de>,
             {
-                let mut ret = HashMap::new();
+                let mut ret = BTreeMap::new();
                 while let Some(element) = seq.next_element::<SerKey<'de>>()? {
                     let SerKey {
                         key_name,
