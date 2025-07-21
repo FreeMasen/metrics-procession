@@ -45,7 +45,7 @@ fn main() {
             .with_message("getting started"),
     );
     pg2.enable_steady_tick(Duration::from_millis(500));
-
+    let mut ttl = 0;
     for i in 0..count {
         (0..=u16::MAX)
             .into_par_iter()
@@ -54,10 +54,12 @@ fn main() {
                 metrics::counter!("some-counter", "with-a-label" => format!("{}", i % 4096))
                     .increment(1);
             });
+        ttl += u16::MAX as u64;
         pg2.set_message(format!(
-            "{} events take up {} space in memory",
+            "{} events take up {} space in memory ({}/event)",
             HumanCount((i + 1) * (u16::MAX as u64)),
-            HumanBytes(recorder.memory_size() as u64)
+            HumanBytes(recorder.memory_size() as u64),
+            HumanBytes(recorder.memory_size() as u64 / ttl),
         ));
     }
     pg2.abandon();
