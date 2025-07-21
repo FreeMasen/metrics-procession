@@ -23,19 +23,32 @@ pub struct Procession {
 impl Procession {
     /// A naive attempt to calculate the memory size of the current state
     pub fn memory_size(&self) -> usize {
-        use std::mem::size_of;
+        use std::{mem::size_of, collections::HashSet};
+        let mut shared_string_set = HashSet::new();
         let labels_size = self
             .labels
             .0
             .keys()
             .map(|k| {
-                size_of::<Key>()
-                    + size_of::<u16>()
-                    + k.name().len()
-                    + k.labels()
-                        .map(|l| l.key().len() + l.value().len())
-                        .sum::<usize>()
-                    + size_of::<LabelSet>()
+                let k_size = if shared_string_set.insert(k.name()) {
+                    k.name().len()
+                } else {
+                    0
+                } + size_of::<Key>();
+                let l_size = k.labels().fold(0, |acc, l| {
+                    let l_size = if shared_string_set.insert(l.key()) {
+                        l.key().len()
+                    } else {
+                        0
+                    } + size_of::<Label>();
+                    let v_size = if shared_string_set.insert(l.value()) {
+                        l.value().len()
+                    } else {
+                        0
+                    } + size_of::<Label>();
+                    acc + l_size + v_size
+                });
+                k_size + l_size + size_of::<u16>()
             })
             .sum::<usize>();
         let chunk_size = self.chunks.iter().map(|c| c.memory_size()).sum::<usize>();
