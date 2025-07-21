@@ -3,6 +3,7 @@ use std::{
     fs::File,
     io::{self, BufRead, BufReader, Write, stdout},
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 use clap::Parser;
@@ -13,25 +14,107 @@ use metrics_procession::{
     procession::Procession,
 };
 use metrics_util::storage::Summary;
+use regex::Regex;
+use time::{PrimitiveDateTime, format_description::well_known::Rfc3339};
 
 #[derive(Debug, Parser)]
 pub struct Args {
     /// Where to find the serialized metrics
     source: PathBuf,
     /// A key to filter events for
-    key: Option<String>,
+    #[arg(short, long = "key")]
+    keys: Vec<Regex>,
+    #[arg(short, long = "label")]
+    labels: Vec<KeyValue>,
+    #[clap(long, short, value_parser = parse_date_time)]
+    start: Option<PrimitiveDateTime>,
+    #[clap(long, short, value_parser = parse_date_time)]
+    end: Option<PrimitiveDateTime>,
+}
+
+#[derive(Debug, Clone)]
+struct KeyValue {
+    key: Regex,
+    value: Option<Regex>,
+}
+
+impl FromStr for KeyValue {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split('=').take(2);
+        let Some(key) = parts.next() else {
+            return Err(format!(
+                "expected 2 values seperated by an equal sign but string was empty"
+            ));
+        };
+        let value = parts.next();
+        let key = Regex::new(key).map_err(|e| format!("Error parsing key regex: {e}"))?;
+        let value = value
+            .map(|value| Regex::new(value).map_err(|e| format!("Error parsing value regex: {e}")))
+            .transpose()?;
+        Ok(Self { key, value })
+    }
+}
+
+impl KeyValue {
+    fn matches(&self, k: &Key) -> bool {
+        for l in k.labels() {
+            if self.key.is_match(l.key()) {
+                if let Some(v) = self.value.as_ref() {
+                    if v.is_match(l.value()) {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            }
+        }
+        false
+    }
 }
 
 fn main() {
-    let Args { source, key } = Args::parse();
+    let Args {
+        source,
+        keys,
+        labels,
+        start,
+        end,
+    } = Args::parse();
     let metrics = deser_metrics(&source);
     let mut collector = QueryCollector::default();
     for metric in metrics.iter() {
-        if key.as_ref().map(|k| metric.key.name() == k).unwrap_or(true) {
-            collector.track_metric(metric);
+        if !keys.iter().all(|re| re.is_match(metric.key.name())) {
+            continue;
         }
+        if !labels.iter().all(|kv| kv.matches(&metric.key)) {
+            continue;
+        }
+        if let Some(start) = start {
+            if start.assume_offset(metric.when.offset()) > metric.when {
+                continue;
+            }
+        }
+        if let Some(end) = end {
+            if end.assume_offset(metric.when.offset()) >= metric.when {
+                continue;
+            }
+        }
+
+        collector.track_metric(metric);
     }
     collector.report_into(&mut stdout().lock()).unwrap();
+}
+
+fn parse_date_time(s: &str) -> Result<PrimitiveDateTime, String> {
+    let res = PrimitiveDateTime::parse(s, &Rfc3339)
+        .map_err(|e| format!("expected RFC3339 formatted date or date-time found `{s}`: {e}"));
+    if res.is_err() {
+        if let Ok(dt) = time::Date::parse(s, &Rfc3339) {
+            return Ok(PrimitiveDateTime::new(dt, time::Time::MIDNIGHT));
+        }
+    }
+    return res;
 }
 
 /// Attempt to deserialize the provided file path as a Procession

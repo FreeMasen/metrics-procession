@@ -514,6 +514,7 @@ dependencies = [
  "metrics-util",
  "rand",
  "rayon",
+ "regex",
  "serde",
  "serde_json",
  "time",
