@@ -76,7 +76,7 @@ impl Procession {
             .last()
             .map(|c| (now - c.reference_time))
             .unwrap_or_default();
-        if duration > Duration::milliseconds(i64::from(u16::MAX - 10)) {
+        if duration > Duration::milliseconds(i64::from(u16::MAX)) {
             self.chunks.push(Chunk::new(now));
             duration = Duration::ZERO;
         }
