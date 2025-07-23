@@ -17,13 +17,13 @@ of 10(8+2) bytes in size and then another 64 bytes for the `metrics::Key` value 
 So, how small could we make this reasonably? Fist of all, we probably don't need to keep a full time
 representation on each metric, if a chunk of events was associated with a reference time, then a 16
 bit integer could be used to track the milliseconds since the reference time. That means we can
-represent a `Chunk` as a pair of a OffsetDateTime and a `Vec` of the triple that cotains the metric
+represent a `Chunk` as a pair of a OffsetDateTime and a `Vec` of the triple that contains the metric
 type and value, the milliseconds and the unique key+label set. That reducing 16 bytes down to 2
 bytes, the remaining bytes being amortized across the number of events in a give chunk.
 
 Next we will want to try and reduce the size of the `Key` value, for that we can again use a `u16`
 and then amortized the cost of each `Key` across all chunks currently in the series. For that we use
-a `HashMap<Key, u16>` to make looking up the id value for any give key while recording, this
+a `BTreeMap<Key, u16>` to allow looking up the id value for any give key while recording, this
 mapping is owned by the series itself and not any given chunk which means we have a maximum unique
 set of labels at `65535` which is reasonable for most systems but may not be suitable for all
 systems. It may be valuable to add a filtering metrics layer above the `Recorder` provided by this
@@ -41,11 +41,8 @@ the reference time along with a `Vec<Event>` in that section of the series.
 
 There are also 2 ways to iterate through the series, either by cloning the `Key`'s contents or by
 borrowing them from the `Procession`, both representations also implement `Serialize` but only the
-cloned version implements `Deserialize` since teh semantics of the `Key` storage is a bit more
+cloned version implements `Deserialize` since the semantics of the `Key` storage is a bit more
 complicated.
 
 > As a warning the `Procession`'s implementation of `Deseriaize` requires a borrowed string meaning
-> it cannot be used with an `impl Read` type (used by `serde_json::from_reader`), in those
-> situations it would make more sense to serialize using `Procession::iter_owned` and then calling
-> `collect` to serialize the `Vec<Metric>` which can be deserialized and then converted into a
-> `Procession`
+> it cannot be used with an `impl Read` type (used by `serde_json::from_reader`)
