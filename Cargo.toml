@@ -6,7 +6,7 @@ license = "MIT"
 repository = "https://github.com/FreeMasen/metrics-procession"
 description = "A compact in-memory collector for metrics.rs"
 authors = ["Robert Masen"]
-categories = ["debugging"]
+categories = ["development-tools::debugging", "data-structures"]
 
 [dependencies]
 metrics = "0.24"
