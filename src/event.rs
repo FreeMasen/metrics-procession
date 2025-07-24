@@ -13,7 +13,6 @@ pub struct Event {
 
 /// A raw metrics event representing the type and value of what was emitted by the instrumentation
 #[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
-#[serde(tag = "event")]
 pub enum Entry {
     /// A gauge event
     Gauge { value: f32, op: Op },

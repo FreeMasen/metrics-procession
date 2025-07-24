@@ -7,7 +7,10 @@ use std::{
 };
 
 use clap::Parser;
-use metrics_procession::{iter::MetricRef, recorder::ProcessionRecorder};
+use metrics_procession::{
+    iter::{Metric, MetricRef},
+    recorder::ProcessionRecorder,
+};
 use rand::Rng;
 
 /// This example provides a view of the collected metrics by serializing the TimeStream into multiple formats.
@@ -84,6 +87,11 @@ fn main() {
                 b.write_all(b"\n").unwrap();
             }
         }
+        OutputFormat::Postcard => {
+            let v: Vec<Metric> = metrics.iter_owned().collect();
+            let bytes = postcard::to_stdvec(&v).unwrap();
+            out.write_all(&bytes).unwrap();
+        }
     }
 }
 
@@ -111,6 +119,7 @@ enum OutputFormat {
     Original,
     Array,
     JsonLines,
+    Postcard,
 }
 
 impl FromStr for OutputFormat {
@@ -121,6 +130,7 @@ impl FromStr for OutputFormat {
             "original" | "o" => Self::Original,
             "array" | "a" => Self::Array,
             "json-lines" | "j" => Self::JsonLines,
+            "postcard" | "p" => Self::Postcard,
             _ => {
                 return Err(format!(
                     "expected `original`, `o`, `array`, `a`, `json-lines`, or `j` found `{s}`"
@@ -136,6 +146,7 @@ impl Display for OutputFormat {
             OutputFormat::Original => "Original",
             OutputFormat::Array => "Array",
             OutputFormat::JsonLines => "JsonLines",
+            OutputFormat::Postcard => "Postcard",
         })
     }
 }

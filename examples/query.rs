@@ -119,6 +119,15 @@ fn parse_date_time(s: &str) -> Result<PrimitiveDateTime, String> {
 
 /// Attempt to deserialize the provided file path as a Procession
 fn deser_metrics(path: &Path) -> Procession {
+    if path
+        .extension()
+        .map(|e| e == "postcard")
+        .unwrap_or_default()
+    {
+        let bytes = std::fs::read(path).unwrap();
+        let events: Vec<Metric> = postcard::from_bytes(&bytes).unwrap();
+        return events.into_iter().collect();
+    }
     // If the line was a jsonl file, we can assume each line will be a Metric
     if path.extension().map(|e| e == "jsonl").unwrap_or_default() {
         let buf = BufReader::new(
