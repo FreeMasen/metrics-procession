@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     fs::File,
     io::{BufWriter, Write},
     path::PathBuf,
@@ -129,13 +130,12 @@ impl FromStr for OutputFormat {
     }
 }
 
-impl ToString for OutputFormat {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for OutputFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             OutputFormat::Original => "Original",
             OutputFormat::Array => "Array",
             OutputFormat::JsonLines => "JsonLines",
-        }
-        .to_string()
+        })
     }
 }

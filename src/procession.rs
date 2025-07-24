@@ -23,7 +23,7 @@ pub struct Procession {
 impl Procession {
     /// A naive attempt to calculate the memory size of the current state
     pub fn memory_size(&self) -> usize {
-        use std::{mem::size_of, collections::HashSet};
+        use std::{collections::HashSet, mem::size_of};
         let mut shared_string_set = HashSet::new();
         let labels_size = self
             .labels

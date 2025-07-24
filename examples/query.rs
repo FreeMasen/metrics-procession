@@ -44,7 +44,7 @@ impl FromStr for KeyValue {
         let mut parts = s.split('=').take(2);
         let Some(key) = parts.next() else {
             return Err(format!(
-                "expected 2 values seperated by an equal sign but string was empty"
+                "expected 2 values seperated by an equal sign but string was empty: `{s}`"
             ));
         };
         let value = parts.next();
@@ -87,7 +87,7 @@ fn main() {
         if !keys.iter().all(|re| re.is_match(metric.key.name())) {
             continue;
         }
-        if !labels.iter().all(|kv| kv.matches(&metric.key)) {
+        if !labels.iter().all(|kv| kv.matches(metric.key)) {
             continue;
         }
         if let Some(start) = start {
@@ -114,7 +114,7 @@ fn parse_date_time(s: &str) -> Result<PrimitiveDateTime, String> {
             return Ok(PrimitiveDateTime::new(dt, time::Time::MIDNIGHT));
         }
     }
-    return res;
+    res
 }
 
 /// Attempt to deserialize the provided file path as a Procession
@@ -140,7 +140,7 @@ fn deser_metrics(path: &Path) -> Procession {
             })
             .collect();
     }
-    let s = std::fs::read_to_string(&path).unwrap();
+    let s = std::fs::read_to_string(path).unwrap();
     // If we have any other file extension, first try and deserialize the full Procession type
     if let Ok(proc) = serde_json::from_str::<Procession>(&s)
         .inspect_err(|e| eprintln!("failed to deser as Procession: {e}"))
