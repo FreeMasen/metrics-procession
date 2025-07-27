@@ -15,7 +15,7 @@ time = { version = "0.3.41", features = ["serde-human-readable"] }
 
 [dev-dependencies]
 clap = { version = "4.5.41", features = ["derive"] }
-criterion = "0.6.0"
+criterion = "0.7.0"
 indicatif = { version = "0.18.0", features = ["rayon"] }
 insta = { version = "1.43.1", features = ["json", "redactions"] }
 metrics-util = "0.20.0"
@@ -30,4 +30,8 @@ default = []
 
 [[bench]]
 name = "events_throughput"
+harness = false
+
+[[bench]]
+name = "realistic_scenarios"
 harness = false
