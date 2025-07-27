@@ -169,3 +169,181 @@ impl<'de> Deserialize<'de> for SerKey<'de> {
         deserializer.deserialize_map(EntryVisitor)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use metrics::Label;
+
+    #[test]
+    fn test_label_set_creation() {
+        let label_set = LabelSet::default();
+        assert!(label_set.0.is_empty());
+    }
+
+    #[test]
+    fn test_ensure_key_new() {
+        let mut label_set = LabelSet::default();
+        let key = Key::from_name("test_metric");
+
+        let id = label_set.ensure_key(&key);
+        assert_eq!(id, 0); // First key should get ID 0
+        assert_eq!(label_set.0.len(), 1);
+        assert_eq!(label_set.get(&key), Some(0));
+    }
+
+    #[test]
+    fn test_ensure_key_existing() {
+        let mut label_set = LabelSet::default();
+        let key = Key::from_name("test_metric");
+
+        let id1 = label_set.ensure_key(&key);
+        let id2 = label_set.ensure_key(&key); // Same key again
+
+        assert_eq!(id1, id2);
+        assert_eq!(label_set.0.len(), 1); // Should still be only 1 key
+    }
+
+    #[test]
+    fn test_multiple_keys() {
+        let mut label_set = LabelSet::default();
+
+        let key1 = Key::from_name("metric1");
+        let key2 = Key::from_name("metric2");
+        let key3 = Key::from_parts("metric3", vec![Label::new("env", "prod")]);
+
+        let id1 = label_set.ensure_key(&key1);
+        let id2 = label_set.ensure_key(&key2);
+        let id3 = label_set.ensure_key(&key3);
+
+        assert_eq!(id1, 0);
+        assert_eq!(id2, 1);
+        assert_eq!(id3, 2);
+        assert_eq!(label_set.0.len(), 3);
+    }
+
+    #[test]
+    fn test_keys_with_labels() {
+        let mut label_set = LabelSet::default();
+
+        let key1 = Key::from_parts(
+            "http_requests",
+            vec![Label::new("method", "GET"), Label::new("status", "200")],
+        );
+
+        let key2 = Key::from_parts(
+            "http_requests",
+            vec![Label::new("method", "POST"), Label::new("status", "201")],
+        );
+
+        let id1 = label_set.ensure_key(&key1);
+        let id2 = label_set.ensure_key(&key2);
+
+        assert_ne!(id1, id2); // Different label sets should get different IDs
+        assert_eq!(label_set.0.len(), 2);
+    }
+
+    #[test]
+    fn test_get_nonexistent_key() {
+        let label_set = LabelSet::default();
+        let key = Key::from_name("nonexistent");
+
+        assert_eq!(label_set.get(&key), None);
+    }
+
+    #[test]
+    fn test_label_set_serialization() {
+        let mut label_set = LabelSet::default();
+
+        // Add some keys with various label combinations
+        label_set.ensure_key(&Key::from_name("simple"));
+        label_set.ensure_key(&Key::from_parts(
+            "with_labels",
+            vec![Label::new("env", "test"), Label::new("service", "api")],
+        ));
+
+        // Test JSON serialization
+        let json = serde_json::to_string(&label_set).unwrap();
+        let deserialized: LabelSet = serde_json::from_str(&json).unwrap();
+        assert_eq!(label_set, deserialized);
+    }
+
+    #[test]
+    fn test_large_number_of_keys() {
+        let mut label_set = LabelSet::default();
+
+        // Add many keys to test ID assignment
+        for i in 0..1000 {
+            let key = Key::from_parts(
+                format!("metric_{i}"),
+                vec![Label::new("index", i.to_string())],
+            );
+            let id = label_set.ensure_key(&key);
+            assert_eq!(id as usize, i);
+        }
+
+        assert_eq!(label_set.0.len(), 1000);
+    }
+
+    #[test]
+    fn test_key_order_independence() {
+        let mut label_set1 = LabelSet::default();
+        let mut label_set2 = LabelSet::default();
+
+        // Same labels but different order
+        let key1 = Key::from_parts("metric", vec![Label::new("a", "1"), Label::new("b", "2")]);
+
+        let key2 = Key::from_parts("metric", vec![Label::new("b", "2"), Label::new("a", "1")]);
+
+        let id1 = label_set1.ensure_key(&key1);
+        let id2 = label_set2.ensure_key(&key2);
+
+        // Keys with same labels in different order should be considered equal
+        assert_eq!(key1, key2);
+        assert_eq!(id1, id2);
+    }
+
+    #[test]
+    fn test_empty_key_name() {
+        let mut label_set = LabelSet::default();
+        let key = Key::from_name("");
+
+        let id = label_set.ensure_key(&key);
+        assert_eq!(id, 0);
+        assert_eq!(label_set.get(&key), Some(0));
+    }
+
+    #[test]
+    fn test_special_characters_in_labels() {
+        let mut label_set = LabelSet::default();
+        let key = Key::from_parts(
+            "metric",
+            vec![
+                Label::new("special/chars", "value_with-dashes"),
+                Label::new("unicode", "🦀"),
+                Label::new("spaces", "value with spaces"),
+            ],
+        );
+
+        let id = label_set.ensure_key(&key);
+        assert_eq!(id, 0);
+
+        // Should serialize/deserialize correctly
+        let json = serde_json::to_string(&label_set).unwrap();
+        let deserialized: LabelSet = serde_json::from_str(&json).unwrap();
+        assert_eq!(label_set, deserialized);
+    }
+
+    #[test]
+    fn test_max_labels_saturates() {
+        let mut label_set = LabelSet::default();
+
+        for i in 0..=u16::MAX {
+            let key = Key::from_name(format!("metric_{i}"));
+            let id = label_set.ensure_key(&key);
+            assert_eq!(id, i);
+        }
+        let id = label_set.ensure_key(&Key::from_name(""));
+        assert_eq!(id, u16::MAX);
+    }
+}
