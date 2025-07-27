@@ -79,7 +79,7 @@ impl CounterFn for Counter {
 impl Counter {
     pub fn insert(&self, value: u64, op: Op) {
         let Ok(value) = u32::try_from(value) else {
-            eprintln!("value has exceeded a u32, skipping event");
+            log::warn!("value has exceeded a u32, skipping event");
             return;
         };
         self.1

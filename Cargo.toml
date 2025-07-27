@@ -9,6 +9,7 @@ authors = ["Robert Masen"]
 categories = ["development-tools::debugging", "data-structures"]
 
 [dependencies]
+log = "0.4.27"
 metrics = "0.24"
 serde = { version = "1.0.219", features = ["derive"] }
 time = { version = "0.3.41", features = ["serde-human-readable"] }

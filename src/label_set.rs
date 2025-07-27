@@ -24,7 +24,7 @@ impl LabelSet {
             return *v;
         }
         let v = u16::try_from(self.0.len()).unwrap_or_else(|_| {
-            eprintln!("too many labels!!!");
+            log::warn!("too many labels!!!");
             u16::MAX
         });
         self.0.insert(key.clone(), v);

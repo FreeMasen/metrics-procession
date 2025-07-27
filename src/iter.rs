@@ -226,6 +226,18 @@ mod tests {
         }
     }
 
+    #[test]
+    fn iter_uses_empty_label_when_misconfigured() {
+        let mut time_stream = build_test_stream();
+        time_stream.labels.0.clear();
+        let met_refs = MetricsRefIterator::from(&time_stream);
+        let mets = MetricsIterator::from(&time_stream);
+        for (l, r) in mets.zip(met_refs) {
+            assert_eq!(l.key, "");
+            assert_eq!(r.key, EMPTY_KEY.get().unwrap());
+        }
+    }
+
     fn build_test_stream() -> Procession {
         let start = OffsetDateTime::new_utc(
             Date::from_calendar_date(2025, time::Month::January, 1).unwrap(),
