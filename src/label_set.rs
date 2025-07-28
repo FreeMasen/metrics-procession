@@ -150,10 +150,10 @@ impl<'de> Deserialize<'de> for SerKey<'de> {
                         serde::de::Error::custom("key_name missing from label set entry")
                     })?,
                     labels: labels.ok_or_else(|| {
-                        serde::de::Error::custom("key_name missing from label set entry")
+                        serde::de::Error::custom("labels missing from label set entry")
                     })?,
                     value: value.ok_or_else(|| {
-                        serde::de::Error::custom("key_name missing from label set entry")
+                        serde::de::Error::custom("value missing from label set entry")
                     })?,
                 })
             }
